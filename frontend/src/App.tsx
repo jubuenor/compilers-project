@@ -1,35 +1,71 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import "./App.css";
+import { postGrammar } from "./api";
+import Mermaid from "mermaid";
+
+//interface Response {
+//    raw: string;
+//    formatted: string;
+//}
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [grammar, setGrammar] = useState("");
+    const [mermaidChart, setMermaidChart] = useState<string>("graph LR; Q1-->|a, S; SX| Q1; Q1-->|b, S; SY, λ| Q1; Q1-->|b, X; λ| Q1; Q1-->|a, Y; λ| Q1; Q0-->|λ, ε; Sε| Q1; Q1-->|λ, ε; ε| Q2;");
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    useEffect(() => {
+        Mermaid.initialize({
+            startOnLoad: true,
+            securityLevel: "loose",
+            theme: "forest",
+            logLevel: 5,
+        });
+    }, []);
+
+    useEffect(() => {
+        if (mermaidChart) {
+            Mermaid.contentLoaded();
+        }
+        console.log(mermaidChart);
+    }, [mermaidChart]);
+
+    const onSubmit = async () => {
+        try {
+            console.log(grammar);
+            const response = await postGrammar(grammar);
+            setMermaidChart("graph LR;\n" + response.data.formatted.replace("\n",""));
+        } catch (e) {
+            alert("Something went wrong" + e);
+        }
+    };
+
+    return (
+        <>
+            <h1>Convert CFG to PDA</h1>
+            <div className="flex">
+                <div>
+                    <textarea
+                        rows={10}
+                        cols={50}
+                        onChange={(
+                            e: React.ChangeEvent<HTMLTextAreaElement>,
+                        ) => setGrammar(e.target.value)}
+                    >
+                    </textarea>
+                    <br />
+                    <button onClick={() => onSubmit()}>
+                        Convert
+                    </button>
+                </div>
+                <div
+                    className="mermaid h-100 w-100"
+                    dangerouslySetInnerHTML={{
+                        __html: mermaidChart ? mermaidChart : "",
+                    }}
+                >
+                </div>
+            </div>
+        </>
+    );
 }
 
-export default App
+export default App;

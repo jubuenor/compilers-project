@@ -1,15 +1,30 @@
-from typing import Union
-
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 
+from backend.cfgToPda.cfgToPda import converseCfgToPda
+
 app = FastAPI()
+origins = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-@app.get("/")
+class BodyRequest(BaseModel):
+    grammar: str
+
+
+@app.get("/ping")
 def read_root():
-    return {"Hello": "World"}
+    return "pong"
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.post("/convert")
+def read_item(body: BodyRequest):
+    raw, formatted = converseCfgToPda(body.grammar)
+    return {"raw": raw, "formatted": formatted}
