@@ -1,53 +1,53 @@
+
 from backend.cfgToPda.Utils.Exceptions import IllegalVariableException
 import backend.cfgToPda.Utils.constants as constant
 from backend.cfgToPda.Automata.state import State
 from backend.cfgToPda.Automata.transition import Transition
 
-def importGrammar (grammar_str):
+def importGrammar(grammar_str):
     data = grammar_str.strip().splitlines()
-    
+    if len(data) < 3:
+        raise ValueError("La gramática debe tener al menos 3 líneas: "
+                         "1) símbolo inicial, 2) terminales, 3) reglas de producción.")
+
+    initStateSym = data[0].rstrip()   
+    terminals = data[1].rstrip()     
+    states = []
     transitions = []
-    initStateSym = data[0].rstrip()
-    
-    terminals = data[1].rstrip()
-    
+
     initState = State("Q0", True, False, [])
     midState = State("Q1", False, False, [])
     finalState = State("Q2", False, True, [])
-    
+
     terminals = terminals.split(',')
-    
-    for idx in range(2, data.__len__()):
+
+    for idx in range(2, len(data)):
         rule = data[idx].strip()
         rule = rule.replace(" ", "")
         for character in rule:
-            if character == '-' or character == '>' or character == '|':
-                pass
-            elif character not in terminals and (not character.isupper()) and character != constant.LAMBDA:
+            if character in ['-', '>', '|']:
+                continue
+            if character not in terminals and not character.isupper() and character != constant.LAMBDA:
                 raise IllegalVariableException(character, rule)
-        
-        #left hand side: state        
-        lhs = rule[:rule.find('-')]
-        #right hand side: productions
-        rhs = rule[rule.find('>') + 1:]
-        #split productions
+
+        lhs = rule[:rule.find('-')]  
+        rhs = rule[rule.find('>') + 1:]  
         rhs = rhs.split('|')
-        #assign productions to each state
-        for t in rhs:
+
+        for prod in rhs:
             trans = Transition(
-                t[:1], #terminal
+                prod[:1],        
                 midState,
                 midState,
-                lhs, #pop rule symbol on transition
-                list(t[1:]) if len(list(t[1:])) > 0 else [constant.LAMBDA]
+                lhs,             
+                list(prod[1:]) if len(list(prod[1:])) > 0 else [constant.LAMBDA]
             )
             transitions.append(trans)
 
-    # initial state & transition
-    init = Transition(constant.LAMBDA, initState, midState, constant.EPSILON, [initStateSym, constant.EPSILON])    
+    init = Transition(constant.LAMBDA, initState, midState, constant.EPSILON, [initStateSym, constant.EPSILON])
     transitions.append(init)
-    # final state transition upon encountering epsilon
     final = Transition(constant.LAMBDA, midState, finalState, constant.EPSILON, [constant.EPSILON])
     transitions.append(final)
+
     states = [initState, midState, finalState]
     return states, transitions
