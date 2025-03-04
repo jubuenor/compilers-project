@@ -1,5 +1,12 @@
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 
-export const postGrammar = (grammar: string) => {
-    return axios.post("http://localhost:8080/convert", { grammar });
+/**
+ * @param grammar 
+ * @param route 
+ */
+export const postGrammar = (
+  grammar: string,
+  route: string = "/convert-dfa"
+): Promise<AxiosResponse<any>> => {
+  return axios.post(`http://localhost:8080${route}`, { grammar });
 };

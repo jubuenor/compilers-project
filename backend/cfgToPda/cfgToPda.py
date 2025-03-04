@@ -4,7 +4,7 @@ import backend.cfgToPda.Utils.constants as constant
 from backend.cfgToPda.Automata.state import State
 from backend.cfgToPda.Automata.transition import Transition
 
-debug = False # debug mode, shows stack contents while parsing
+debug = False  # debug mode, shows stack contents while parsing
 
 class Automaton:
     def __init__(self, states, transitions):
@@ -14,120 +14,98 @@ class Automaton:
     def toPda(self):
         trFunc = {}
         for t in self.transitions:
-            key = (t.currState, t.inputSymbol, t.popSymbol)
-            # make a new key in transition function if not found
-            if (not key in trFunc.keys()):
-                trFunc[key] = []
-            trFunc[key].append((t.nextState, t.pushSymbols))
-        trFunc = enumerate(trFunc.items())
-        rawTransitions = ""
-        mermaidFormattedTransitions = ""
-        for i, (key, value) in trFunc:
-            rawTransitions+=constant.DELTA + '(' + str(key[0]) + ',' + key[1] + ',' + key[2] + ') = {'
-            mermaidFormattedTransitions+=str(key[0]) + '-->|' + key[1] + ', ' + key[2] + '; '
-            targets = []
+            key = (t.currState.name, t.inputSymbol, t.popSymbol)
+            trFunc.setdefault(key, []).append((t.nextState.name, t.pushSymbols))
 
-            for val in value:
-                pushStr = ''.join(val[1])
-                targets.append(
-                    '(' + str(val[0]) + ',' + pushStr + ')'
-                )
-                if val==value[-1]:
-                    mermaidFormattedTransitions += pushStr + '| ' + str(val[0]) + ';\n'
-                else:
-                    mermaidFormattedTransitions+=pushStr + ', ' 
-            rawTransitions+= str(', ').join(targets) + ' }' + '\n'
+        rawTransitions = ""
+        mermaidFormattedTransitions = "stateDiagram-v2\n"
+
+        for key, transitions in trFunc.items():
+            for (nextState, pushSymbols) in transitions:
+                pushStr = ''.join(pushSymbols)
+                label = f"{key[1]}, {key[2]} → {pushStr}"
+                mermaidFormattedTransitions += f"{key[0]} --> {nextState} : {label}\n"
+
+                rawTransitions += f"{constant.DELTA}({key[0]},{key[1]},{key[2]}) = ( {nextState},{pushStr} )\n"
 
         return rawTransitions, mermaidFormattedTransitions
-    
+
     def checkMembership(self, string):
-        stack = []
-        stack.append(constant.EPSILON)
-        # find initial state
+        stack = [constant.EPSILON]
+        currState = None
         for state in self.states:
-            if (state.isInitial):
+            if state.isInitial:
                 currState = state
                 break
-        finishProcess, state = self.matchStr(string, currState, stack)
-        t = (state.isFinal and finishProcess)
-        return t
+        finishProcess, finalState = self.matchStr(string, currState, stack)
+        return finalState.isFinal and finishProcess
 
-    # has exponential time complexity, but is useful for small strings |w| <= 50
     def matchStr(self, string, currState, stack):
-        # print(currState)
-        idx = stack.__len__() -1
+        idx = len(stack) - 1
         top = stack[idx]
         finishProcess = False
-        # next character to be processed
-        if len(string) > 0:
-            inputSym = string[0]
-        else: inputSym = constant.LAMBDA
+        inputSym = string[0] if len(string) > 0 else constant.LAMBDA
         state = currState
-        visited = False # checks if any moves are left to backtrack
+        visited = False
 
         for tr in self.transitions:
-            if tr.currState is currState and (tr.inputSymbol == inputSym or tr.inputSymbol == constant.LAMBDA) and (tr.popSymbol == top):
-                # remove last element from stack (pop simulation)
-                newStack = stack [:-1]
-                # add the non-lambda transition push symbols to stack
+            if (
+                tr.currState is currState
+                and (tr.inputSymbol == inputSym or tr.inputSymbol == constant.LAMBDA)
+                and (tr.popSymbol == top)
+            ):
+                newStack = stack[:-1]
                 pushSymbols = tr.pushSymbols[:]
                 pushSymbols.reverse()
                 for sym in pushSymbols:
-                    if sym == constant.LAMBDA:
-                        continue
-                    newStack.append(sym)
+                    if sym != constant.LAMBDA:
+                        newStack.append(sym)
                 if debug:
-                    print(newStack)
-                # don't truncate if input symbol was lambda
-                if (tr.inputSymbol == constant.LAMBDA):
+                    print("newStack:", newStack)
+
+                if tr.inputSymbol == constant.LAMBDA:
                     finishProcess, state = self.matchStr(string[:], tr.nextState, newStack)
                 else:
                     finishProcess, state = self.matchStr(string[1:], tr.nextState, newStack)
-                visited = True #mark path traversed
-                if state.isFinal and finishProcess: break
+                visited = True
+                if state.isFinal and finishProcess:
+                    break
 
-
-        if not visited: 
-            # mark string processing finished only if string is reduced to base size 0
-            finishProcess = (len(string) == 0) 
+        if not visited:
+            finishProcess = (len(string) == 0)
 
         return finishProcess, state
 
-
 def converseCfgToPda(grammar_str):
-#     grammar_str = """
-# S
-# i,*,(,),+
-# S->E
-# E->T+E|T
-# T->i*T|i|(E)
-#     """
-#     grammar_str = """
-# S
-# a,b
-# S->aSX|bSY|b
-# X->b
-# Y->a
-# """
-
     states, transitions = Grammar.importGrammar(grammar_str)
-    
     pda = Automaton(states, transitions)
-    # print("PDA Transition Function:")
     raw, mermaid = pda.toPda()
     return raw, mermaid
-    
-    # print(raw)
-    # print("Mermaid formatted transitions:")
-    # print(mermaid)
-    
-    # while(True):
-    #     print("Parse targets? (Y/N)")
-    #     inp = input().strip().capitalize()
-    #     if (inp != "Y"): break
-    #     string = input("String to parse: ").strip()
-    #     isMember = pda.checkMembership(string)
-    #     if isMember:
-    #         print("String " + string + " is part of the language.")
-    #     else:
-    #         print("String " + string + " is not in the language.")
+
+def grammar_to_nfa(grammar_str: str):
+    from backend.cfgToPda.Grammar import grammarImport
+    states, transitions = grammarImport.importGrammar(grammar_str)
+    data = grammar_str.strip().splitlines()
+    terminals = set(data[1].rstrip().split(','))
+    state_names = {s.name for s in states}
+    initial_state = next(s.name for s in states if s.isInitial)
+    final_states = {s.name for s in states if s.isFinal}
+    trans_dict = {}
+    for s in state_names:
+        trans_dict[s] = {}
+    for t in transitions:
+        src = t.currState.name
+        sym = t.inputSymbol
+        dest = t.nextState.name
+        if sym not in trans_dict[src]:
+            trans_dict[src][sym] = []
+        trans_dict[src][sym].append(dest)
+
+    from backend.cfgToPda.Automata.dfa import NFA
+    return NFA(
+        alphabet=terminals,
+        states=state_names,
+        transitions=trans_dict,
+        initial_state=initial_state,
+        final_states=final_states
+    )
