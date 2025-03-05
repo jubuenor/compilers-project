@@ -8,5 +8,5 @@ export const postGrammar = (
   grammar: string,
   route: string = "/convert-dfa"
 ): Promise<AxiosResponse<any>> => {
-  return axios.post(`http://localhost:8080${route}`, { grammar });
+  return axios.post(`http://localhost:8000${route}`, { grammar });
 };

@@ -44,9 +44,21 @@ function App() {
     }
   };
 
+  const onConvertItemsA = async () => {
+    try {
+      const response = await postGrammar(grammar, "/items");
+      let mermaidOutput = response.data.formatted;
+      mermaidOutput = mermaidOutput.replaceAll(';', '\n    ');
+      console.log(mermaidOutput.replaceAll(';', '\n    '))
+      setMermaidChart(mermaidOutput);
+    } catch (e) {
+      alert("Something went wrong: " + e);
+    }
+  };
+
   return (
     <>
-      <h1>Convert CFG to PDA/DFA</h1>
+      <h1>Convert CFG to Valid Items Automaton</h1>
       <div className="flex">
         <div>
           <textarea
@@ -56,10 +68,11 @@ function App() {
             onChange={(e) => setGrammar(e.target.value)}
           ></textarea>
           <br />
-          <button onClick={onConvertDFA}>Convert to DFA</button>
-          <button onClick={onConvertPDA}>Convert to PDA</button>
+          {/*sirven solo con tokens de 1 caracter*/}
+	   {/* <button onClick={onConvertPDA}>Convert to PDA</button>*/}
+	   {/* <button onClick={onConvertDFA}>Convert to DFA</button>*/}
+          <button onClick={onConvertItemsA}>Convert to Items Automaton</button>
         </div>
-        {}
         <div
           key={mermaidChart}
           className="mermaid h-100 w-100"
