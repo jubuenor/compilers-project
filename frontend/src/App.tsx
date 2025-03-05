@@ -69,8 +69,8 @@ function App() {
           ></textarea>
           <br />
           {/*sirven solo con tokens de 1 caracter*/}
-	   {/* <button onClick={onConvertPDA}>Convert to PDA</button>*/}
-	   {/* <button onClick={onConvertDFA}>Convert to DFA</button>*/}
+          <button onClick={onConvertPDA}>Convert to PDA</button>
+          <button onClick={onConvertDFA}>Convert to DFA</button>
           <button onClick={onConvertItemsA}>Convert to Items Automaton</button>
         </div>
         <div

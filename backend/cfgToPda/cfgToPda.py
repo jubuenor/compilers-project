@@ -5,6 +5,7 @@ import backend.cfgToPda.Grammar.grammarImport as Grammar
 import backend.cfgToPda.Utils.constants as constant
 from backend.cfgToPda.Automata.state import State
 from backend.cfgToPda.Automata.transition import Transition
+import logging
 
 debug = False  # debug mode, shows stack contents while parsing
 
@@ -152,7 +153,15 @@ def gen_auto(item, rules, table=None, already_expanded=None):
         return table
     
     point_index = item.index('.')
-    next_symbol = [s for s in all_symbols if item[point_index + 1:].startswith(s)][0]
+    possible_symbols = [s for s in all_symbols if item[point_index + 1:].startswith(s)]
+
+    if possible_symbols:
+        next_symbol = possible_symbols[0]
+    elif item[point_index + 1:].strip() == constant.EPSILON:  # Verifica explícitamente epsilon
+        next_symbol = constant.EPSILON
+    else:
+        raise ValueError(f"No se encontraron símbolos válidos en '{item}' después del punto.")
+
     
     s_len = len(next_symbol)
     next_item = item.replace('.', '')
@@ -283,7 +292,7 @@ def grammar_to_nfa(grammar_str: str):
     return NFA(
         alphabet=terminals,
         states=state_names,
-        transitions=transitions,#trans_dict,
+        transitions=trans_dict,
         initial_state=initial_state,
         final_states=final_states
     )

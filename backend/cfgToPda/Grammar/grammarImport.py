@@ -27,7 +27,7 @@ def importGrammar(grammar_str):
         for character in rule:
             if character in ['-', '>', '|']:
                 continue
-            if character not in terminals and not character.isupper() and character != constant.LAMBDA:
+            elif character not in terminals and (not character.isupper()) and character not in [constant.LAMBDA, "ε"]:
                 raise IllegalVariableException(character, rule)
 
         lhs = rule[:rule.find('-')]  
